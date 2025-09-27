@@ -17,9 +17,8 @@ def get_agent_for_agentverse():
     return agent
 
 if __name__ == "__main__":
-    print(f"🚀 ENS Pay Agent ready for Agentverse deployment")
-    print(f"📍 Agent Address: {agent.address}")
-    print(f"📧 Mailbox Key Required: {AGENTVERSE_CONFIG['mailbox_key'] is not None}")
+    print(f" 1] ENS Pay Agent ready for Agentverse deployment")
+    print(f" 2] Agent Address: {agent.address}")
+    print(f" 3] Mailbox Key Required: {AGENTVERSE_CONFIG['mailbox_key'] is not None}")
     
-    # Run agent
     agent.run()

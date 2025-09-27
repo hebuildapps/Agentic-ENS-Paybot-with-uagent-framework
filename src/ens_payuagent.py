@@ -56,7 +56,7 @@ agent = Agent(
 
 fund_agent_if_low(agent.wallet.address())
 
-# Chain Configuration
+# Chain Config
 CHAIN_CONFIG = {
     1: {
         "name": "Ethereum",
@@ -78,14 +78,13 @@ CHAIN_CONFIG = {
 # MeTTa Knowledge Graph Implementation
 class MeTTaKnowledgeGraph:
     def __init__(self):
-        # Knowledge base as MeTTa facts and rules
+        # Knowledge base as rules
         self.facts = []
         self.rules = []
         self.ens_cache = {}
         self.balance_cache = {}
         self.user_history = {}
         
-        # Initialize with basic rules
         self.initialize_rules()
         
     def initialize_rules(self):
@@ -202,7 +201,7 @@ class MeTTaKnowledgeGraph:
             user = parts[2]
             amount = float(parts[3])
             
-            # Check for suspicious patterns
+            # Checks for suspicious patterns
             is_large = amount > 1000
             is_new_user = self.user_history.get(user, {}).get('age_days', 0) < 1
             
@@ -243,13 +242,10 @@ class MeTTaKnowledgeGraph:
     def get_payment_reasoning(self, prompt: str, user: str) -> dict:
         """Use MeTTa reasoning for payment decisions"""
         
-        # Add initial facts about payment request
         self.add_fact(f"(payment-request {user} \"{prompt}\")")
         
-        # Reasoning steps
         reasoning_steps = []
         
-        # Step 1: Parse intent
         reasoning_steps.append({
             "step": 1,
             "action": "parse-intent",
@@ -257,7 +253,6 @@ class MeTTaKnowledgeGraph:
             "metta_fact": f"(parse-intent \"{prompt}\")"
         })
         
-        # Step 2: Check balance
         reasoning_steps.append({
             "step": 2,
             "action": "check-balance",
@@ -265,14 +260,13 @@ class MeTTaKnowledgeGraph:
             "metta_query": f"(query (balance {user}))"
         })
         
-        # Step 3: Resolve ENS
         reasoning_steps.append({
             "step": 3,
             "action": "resolve-ens",
             "metta_query": "(query (resolve-ens ?))"
         })
         
-        # Step 4: Safety assessment
+
         reasoning_steps.append({
             "step": 4,
             "action": "safety-check",
@@ -289,11 +283,8 @@ class MeTTaKnowledgeGraph:
                 "balance_entries": len(self.balance_cache)
             }
         }
-
-# Initialize MeTTa Knowledge Graph
 metta_kg = MeTTaKnowledgeGraph()
 
-# ENS Payment Core with MeTTa Integration
 class ENSPaymentCore:
     def __init__(self):
         self.w3_cache = {}
@@ -328,7 +319,6 @@ class ENSPaymentCore:
                     amount = float(match.group(1))
                     recipient = match.group(2)
                 
-                # Validation
                 if amount <= 0:
                     return {
                         "success": False,
@@ -367,12 +357,11 @@ class ENSPaymentCore:
             return cached_address
         
         try:
-            w3 = self.get_web3(1)  # Use mainnet for ENS
+            w3 = self.get_web3(1)
             ens_instance = ENS.from_web3(w3)
             address = ens_instance.address(ens_name)
             
             if address:
-                # Update MeTTa knowledge graph
                 metta_kg.update_ens_cache(ens_name, address)
                 return address
             return None
@@ -383,7 +372,7 @@ class ENSPaymentCore:
     
     async def check_user_balance(self, user_address: str, chain_id: int) -> float:
         """Check user's USDC balance"""
-        # Check MeTTa knowledge graph first
+        # Checking MeTTa knowledge graph first
         cached_balance = metta_kg.get_cached_balance(user_address)
         if cached_balance > 0:
             return cached_balance
@@ -415,7 +404,7 @@ class ENSPaymentCore:
             
             balance_float = balance / (10 ** decimals)
             
-            # Update MeTTa knowledge graph
+            # Updating MeTTa knowledge graph
             metta_kg.update_balance_cache(user_address, balance_float)
             
             return balance_float
@@ -430,22 +419,16 @@ class ENSPaymentCore:
             w3 = self.get_web3(chain_id)
             config = CHAIN_CONFIG[chain_id]
             
-            # USDC has 6 decimals
             amount_wei = int(amount * (10 ** 6))
             
-            # Encode transfer function call
             function_signature = "0xa9059cbb"  
             
-            # Encode recipient address (32 bytes)
             to_address_bytes = bytes.fromhex(to_addr[2:].zfill(64))
             
-            # Encode amount (32 bytes)
             amount_bytes = amount_wei.to_bytes(32, byteorder='big')
             
-            # Combine function signature + parameters
             transaction_data = function_signature + to_address_bytes.hex() + amount_bytes.hex()
             
-            # Estimate gas
             try:
                 gas_estimate = w3.eth.estimate_gas({
                     'to': config["usdc"],
@@ -469,10 +452,10 @@ class ENSPaymentCore:
     async def handle_payment_request(self, prompt: str, user_address: str, chain_id: int) -> Dict[str, Any]:
         """Main handler using MeTTa Knowledge Graph reasoning"""
         
-        # Initialize MeTTa reasoning
+        # Initializing MeTTa reasoning
         metta_reasoning = metta_kg.get_payment_reasoning(prompt, user_address)
         
-        # Step 1: Parse intent
+        # Parsing intent
         intent = self.parse_intent(prompt)
         if not intent["success"]:
             return {
@@ -481,11 +464,11 @@ class ENSPaymentCore:
                 "knowledge_graph": metta_kg.facts[-5:]
             }
         
-        # Step 2: MeTTa query for ENS validation
+        # MeTTa query for ENS validation
         ens_query = f"(query (resolve-ens {intent['recipient']}))"
         ens_result = metta_kg.query(ens_query)
         
-        # Resolve ENS
+        # Resolving ENS
         recipient_address = await self.resolve_ens(intent["recipient"])
         if not recipient_address:
             metta_kg.add_fact(f"(ens-resolution-failed {intent['recipient']})")
@@ -497,10 +480,10 @@ class ENSPaymentCore:
                 "knowledge_graph": metta_kg.facts[-5:]
             }
         
-        # Step 3: Check balance and update knowledge graph
+        # Check balance and update knowledge graph
         user_balance = await self.check_user_balance(user_address, chain_id)
         
-        # Step 4: MeTTa query for payment safety
+        #  MeTTa query for payment safety
         can_pay_query = f"(query (can-pay {user_address} {intent['amount']}))"
         can_pay_result = metta_kg.query(can_pay_query)
         
@@ -513,17 +496,15 @@ class ENSPaymentCore:
                 "knowledge_graph": metta_kg.facts[-5:]
             }
         
-        # Step 5: Suspicious pattern detection
+        # Suspicious pattern detection
         suspicious_query = f"(query (suspicious-pattern {user_address} {intent['amount']}))"
         suspicious_result = metta_kg.query(suspicious_query)
         
-        # Step 6: Prepare transaction
+        # Preparing transaction
         try:
             transaction = await self.prepare_transaction(
                 user_address, recipient_address, intent["amount"], chain_id
             )
-            
-            # Add successful reasoning to knowledge graph
             metta_kg.add_fact(f"(payment-prepared {user_address} {intent['amount']} {intent['recipient']})")
             
             response = {
@@ -557,18 +538,16 @@ class ENSPaymentCore:
                 "knowledge_graph": metta_kg.facts[-5:]
             }
 
-# Initialize payment core
 payment_core = ENSPaymentCore()
 
-# Agent Protocol Handlers
 @agent.on_message(model=PaymentRequest)
 async def handle_payment_message(ctx: Context, sender: str, msg: PaymentRequest):
     """Handle incoming payment requests with MeTTa reasoning"""
     
-    ctx.logger.info(f"📨 Payment request from {sender}")
-    ctx.logger.info(f"💬 Prompt: {msg.prompt}")
-    ctx.logger.info(f"👤 User: {msg.user_address}")
-    ctx.logger.info(f"⛓️ Chain: {msg.chain_id}")
+    ctx.logger.info(f"Payment request from {sender}")
+    ctx.logger.info(f"Prompt: {msg.prompt}")
+    ctx.logger.info(f"User: {msg.user_address}")
+    ctx.logger.info(f"Chain: {msg.chain_id}")
     
     try:
         result = await payment_core.handle_payment_request(
@@ -601,10 +580,10 @@ async def handle_payment_message(ctx: Context, sender: str, msg: PaymentRequest)
     except Exception as e:
         response = PaymentResponse(
             success=False,
-            message=f"❌ Internal error: {str(e)}",
+            message=f"Internal error: {str(e)}",
             error=str(e)
         )
-        ctx.logger.error(f"💥 Exception: {str(e)}")
+        ctx.logger.error(f"Exception: {str(e)}")
     
     await ctx.send(sender, response)
 
@@ -739,12 +718,12 @@ The knowledge graph learns from every interaction!"""
                 )
             else:
                 response = ChatResponse(
-                    message=f"❌ {result['error']}"
+                    message=f"{result['error']}"
                 )
     
     else:
         response = ChatResponse(
-            message="""💡 I didn't understand that command.
+            message="""I didn't understand that command.
 
 **Try:**
 - "Send 5 USDC to vitalik.eth"
@@ -783,17 +762,17 @@ async def handle_info_query(ctx: Context, sender: str, _msg: AgentInfoQuery):
 @agent.on_event("startup")
 async def startup_event(ctx: Context):
     """Agent startup initialization"""
-    ctx.logger.info(f"🚀 ENS Pay Agent with MeTTa started successfully")
-    ctx.logger.info(f"📍 Agent address: {agent.address}")
-    ctx.logger.info(f"💳 Agent wallet: {agent.wallet.address()}")
-    ctx.logger.info(f"🌐 Supported chains: {list(CHAIN_CONFIG.keys())}")
-    ctx.logger.info(f"🧠 MeTTa Knowledge Graph initialized with {len(metta_kg.rules)} rules")
+    ctx.logger.info(f"ENS Pay Agent with MeTTa started successfully")
+    ctx.logger.info(f"Agent address: {agent.address}")
+    ctx.logger.info(f"Agent wallet: {agent.wallet.address()}")
+    ctx.logger.info(f"Supported chains: {list(CHAIN_CONFIG.keys())}")
+    ctx.logger.info(f"MeTTa Knowledge Graph initialized with {len(metta_kg.rules)} rules")
 
 @agent.on_event("shutdown")
 async def shutdown_event(ctx: Context):
     """Agent shutdown cleanup"""
-    ctx.logger.info(f"🛑 ENS Pay Agent shutting down")
-    ctx.logger.info(f"🧠 Final knowledge graph: {len(metta_kg.facts)} facts stored")
+    ctx.logger.info(f"ENS Pay Agent shutting down")
+    ctx.logger.info(f"Final knowledge graph: {len(metta_kg.facts)} facts stored")
 
 app = Flask(__name__)
 
@@ -940,17 +919,17 @@ def run_flask():
     app.run(host='0.0.0.0', port=port, debug=False)
 
 if __name__ == "__main__":
-    print("🤖 Starting ENS Pay Agent with MeTTa Knowledge Graphs...")
-    print(f"📍 Agent Address: {agent.address}")
-    print(f"💳 Wallet Address: {agent.wallet.address()}")
-    print(f"🧠 MeTTa Knowledge Graph: {len(metta_kg.rules)} rules initialized")
-    print("💡 Send PaymentRequest messages to interact")
-    print("🌐 HTTP endpoints available for Agentverse integration")
+    print("Starting ENS Pay Agent with MeTTa Knowledge Graphs...")
+    print(f"Agent Address: {agent.address}")
+    print(f"Wallet Address: {agent.wallet.address()}")
+    print(f"MeTTa Knowledge Graph: {len(metta_kg.rules)} rules initialized")
+    print("Send PaymentRequest messages to interact")
+    print("HTTP endpoints available for Agentverse integration")
     
-    # Start Flask HTTP server in background
+    # startign up a Flask server 
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    print(f"🌐 HTTP server started on port {os.environ.get('PORT', 8080)}")
+    print(f"HTTP server started on port {os.environ.get('PORT', 8080)}")
     
-    # Start uAgent
+    # Started uAgent
     agent.run()
