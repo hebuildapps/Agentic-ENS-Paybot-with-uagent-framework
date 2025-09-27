@@ -3,7 +3,7 @@ from uagents import Agent
 from src.ens_payuagent import agent, PaymentRequest, PaymentResponse
 
 AGENTVERSE_CONFIG = {
-    "name": "ENS Pay Agent",
+    "name": "ENS Pay uAgent",
     "description": "Send USDC to ENS names using natural language",
     "version": "1.0.0",
     "mailbox_key": os.getenv("AGENTVERSE_MAILBOX_KEY"),
