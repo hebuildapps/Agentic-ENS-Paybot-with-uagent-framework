@@ -1,6 +1,9 @@
 uagents>=0.12.0
-web3>=6.0.0
-ens>=0.6.0
+web3>=6.11.0
+ens>=0.10.0
 python-dotenv>=1.0.0
 requests>=2.28.0
-eth-account>=0.8.0
+eth-account>=0.10.0
+eth_abi>=5.0.0
+py_ecc>=6.0.0
+eth_keyfile>=0.9.0

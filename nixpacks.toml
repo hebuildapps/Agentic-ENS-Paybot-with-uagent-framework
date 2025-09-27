@@ -1,0 +1,5 @@
+[phases.build]
+cmds = ["pip install --upgrade pip", "pip install -r requirements.txt --timeout 1200 --retries 3"]
+
+[variables]
+NIXPACKS_PYTHON_VERSION = "3.9"
