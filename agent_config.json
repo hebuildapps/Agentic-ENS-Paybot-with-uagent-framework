@@ -1,0 +1,32 @@
+{
+    "name": "ENS Pay Agent",
+    "version": "1.0.0",
+    "description": "Send USDC to ENS names using natural language commands",
+    "agent_address": "",
+    "protocols": [
+        {
+        "name": "payment",
+        "version": "1.0.0",
+        "models": ["PaymentRequest", "PaymentResponse"]
+        },
+        {
+        "name": "info",
+        "version": "1.0.0", 
+        "models": ["AgentInfoQuery", "AgentInfoResponse"]
+        }
+    ],
+    "capabilities": {
+        "ens_resolution": true,
+        "usdc_payments": true,
+        "multi_chain": true,
+        "balance_checking": true
+    },
+    "supported_chains": [1, 137, 11155111],
+    "supported_tokens": ["USDC"],
+    "examples": [
+        "Send 5 USDC to vitalik.eth",
+        "Transfer 10 USDC to nick.eth",
+        "Pay 25 USDC to ens.eth"
+    ],
+    "tags": ["payment", "ENS", "USDC", "DeFi", "Web3"]
+}
