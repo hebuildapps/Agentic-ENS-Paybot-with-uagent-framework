@@ -60,12 +60,12 @@ fund_agent_if_low(agent.wallet.address())
 CHAIN_CONFIG = {
     1: {
         "name": "Ethereum",
-        "rpc": "https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY",
+        "rpc": os.getenv("MAINNET_RPC"),
         "usdc": "0xA0b86a33E6441d7aE36C7c4AF2ABfC92d11f8b99"
     },
     137: {
         "name": "Polygon",
-        "rpc": "https://polygon-mainnet.g.alchemy.com/v2/YOUR_API_KEY", 
+        "rpc": os.getenv("POLYGON_RPC"),
         "usdc": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
     },
     11155111: {
@@ -544,10 +544,11 @@ payment_core = ENSPaymentCore()
 async def handle_payment_message(ctx: Context, sender: str, msg: PaymentRequest):
     """Handle incoming payment requests with MeTTa reasoning"""
     
-    ctx.logger.info(f"Payment request from {sender}")
-    ctx.logger.info(f"Prompt: {msg.prompt}")
-    ctx.logger.info(f"User: {msg.user_address}")
-    ctx.logger.info(f"Chain: {msg.chain_id}")
+    ctx.logger.info(f"💰 Payment request from {sender}")
+    ctx.logger.info(f"📝 Prompt: {msg.prompt}")
+    ctx.logger.info(f"👤 User: {msg.user_address}")
+    ctx.logger.info(f"⛓️ Chain: {msg.chain_id}")
+    print(f"🔥 PROCESSING PAYMENT: {msg.prompt} from {sender}")
     
     try:
         result = await payment_core.handle_payment_request(
@@ -567,6 +568,7 @@ async def handle_payment_message(ctx: Context, sender: str, msg: PaymentRequest)
                 knowledge_graph=result.get("knowledge_graph")
             )
             ctx.logger.info(f"✅ Payment prepared with MeTTa reasoning")
+            print(f"✅ SUCCESS: Transaction prepared for {result['summary']}")
         else:
             response = PaymentResponse(
                 success=False,
@@ -576,6 +578,7 @@ async def handle_payment_message(ctx: Context, sender: str, msg: PaymentRequest)
                 knowledge_graph=result.get("knowledge_graph")
             )
             ctx.logger.info(f"❌ Payment failed: {result['error']}")
+            print(f"❌ FAILED: {result['error']}")
             
     except Exception as e:
         response = PaymentResponse(
@@ -592,6 +595,7 @@ async def handle_chat(ctx: Context, sender: str, msg: ChatMessage):
     """Handle natural language chat messages"""
     
     ctx.logger.info(f"💬 Chat message from {sender}: {msg.message}")
+    print(f"💬 CHAT: {msg.message} from {sender}")
     
     message_lower = msg.message.lower()
     
@@ -734,30 +738,30 @@ The knowledge graph learns from every interaction!"""
     
     await ctx.send(sender, response)
 
-@agent.on_query(model=AgentInfoQuery)
-async def handle_info_query(ctx: Context, sender: str, _msg: AgentInfoQuery):
+@agent.on_rest("GET", "/info")
+async def handle_info_query(ctx: Context, req):
     """Handle queries about agent capabilities"""
     
-    return AgentInfoResponse(
-        name="ENS Pay Agent with MeTTa Knowledge Graphs",
-        description="Send USDC to ENS names using natural language commands with MeTTa symbolic reasoning",
-        capabilities=[
+    return {
+        "name": "ENS Pay Agent with MeTTa Knowledge Graphs",
+        "description": "Send USDC to ENS names using natural language commands with MeTTa symbolic reasoning",
+        "capabilities": [
             "ENS name resolution with caching",
-            "USDC balance checking with MeTTa facts", 
+            "USDC balance checking with MeTTa facts",
             "Transaction preparation with safety reasoning",
             "Multi-chain support (Ethereum, Polygon, Sepolia)",
             "MeTTa Knowledge Graph reasoning",
             "Suspicious pattern detection",
             "Smart caching and learning"
         ],
-        examples=[
+        "examples": [
             "Send 5 USDC to vitalik.eth",
             "Transfer 10 USDC to nick.eth",
             "Pay 25 USDC to ens.eth",
             "Check my balance",
             "Show knowledge graph stats"
         ]
-    )
+    }
 
 @agent.on_event("startup")
 async def startup_event(ctx: Context):

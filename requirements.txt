@@ -7,3 +7,4 @@ eth_abi>=5.0.0
 py_ecc>=6.0.0
 eth_keyfile>=0.9.0
 flask>=2.3.0
+httpx>=0.25.0
