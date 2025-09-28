@@ -14,9 +14,13 @@ class SimpleChatProtocol:
     async def handle_message(self, ctx: Context, sender: str, message: str, user_id: str = None) -> Dict[str, Any]:
         """Single entry point for all message handling"""
 
+        ctx.logger.info(f"Processing message: {message}")
+        ctx.logger.info(f"Sender: {sender}, User ID: {user_id}")
+
         message_lower = message.lower()
 
         if any(word in message_lower for word in ["send", "pay", "transfer", "usdc", ".eth"]):
+            ctx.logger.info("Routing to payment handler")
             return await self._handle_payment(ctx, message, user_id or sender)
 
         elif any(word in message_lower for word in ["balance"]):
@@ -39,7 +43,7 @@ class SimpleChatProtocol:
 
         if not user_id:
             return {
-                "message": " Please connect your wallet to process payments",
+                "message": "Please connect your wallet to process payments",
                 "requires_wallet": True
             }
 
@@ -50,17 +54,33 @@ class SimpleChatProtocol:
             
                 self.pending_transactions[user_id] = result["transaction"]
 
-                confidence_emoji = "🔥" if result.get("confidence", 0) > 0.8 else "⚡"
+                confidence_indicator = "HIGH" if result.get("confidence", 0) > 0.8 else "MEDIUM"
+
+                # Format transaction data for Agentverse wallet integration
+                transaction_data = {
+                    "to": result["transaction"]["to"],
+                    "data": result["transaction"]["data"],
+                    "value": result["transaction"]["value"],
+                    "gasLimit": result["transaction"]["gasLimit"],
+                    "chainId": result["transaction"]["chainId"],
+                    # Additional fields that might be required
+                    "from": user_id,
+                    "amount": str(result["intent"]["amount"]),
+                    "token": "USDC",
+                    "recipient": result["intent"]["recipient"],
+                    "type": "erc20_transfer"
+                }
 
                 return {
-                    "message": f"""{confidence_emoji} {result['summary']}
+                    "message": f"""Transaction ready: {result['summary']}
 
 Your Balance: {result['user_balance']:.2f} USDC
-AI Confidence: {result.get('confidence', 0):.1%}
+AI Confidence: {result.get('confidence', 0):.1%} ({confidence_indicator})
 Knowledge Used: {len(result.get('knowledge_graph', []))} facts
 
-Please approve in your wallet!""",
-                    "transaction_data": result["transaction"]
+Please approve the transaction in your connected wallet.""",
+                    "transaction_data": transaction_data,
+                    "requires_wallet": True
                 }
             else:
                 return {
