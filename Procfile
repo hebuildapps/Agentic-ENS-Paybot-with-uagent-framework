@@ -1,1 +1,1 @@
-web: python src/agent.py
+web: python start.py
