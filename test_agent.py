@@ -1,6 +1,6 @@
 import asyncio
 from uagents import Model
-from src.ens_payuagent import PaymentRequest, PaymentResponse, agent
+from agent import PaymentRequest, PaymentResponse, agent
 
 async def test_payment_flow():
     """Test the payment agent locally"""
@@ -29,7 +29,7 @@ async def test_payment_flow():
         }
     ]
     
-    from src.ens_payuagent import payment_core
+    from agent import payment_core
     
     for i, test in enumerate(test_cases, 1):
         print(f"\n📋 Test {i}: {test['prompt']}")

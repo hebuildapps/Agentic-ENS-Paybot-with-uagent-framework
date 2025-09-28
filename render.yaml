@@ -3,7 +3,7 @@ services:
     name: ens-pay-agent
     runtime: python3
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: python ens_payuagent.py
+    startCommand: python agent.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.9

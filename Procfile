@@ -1,1 +1,1 @@
-web: python src/ens_payuagent.py
+web: python src/agent.py
