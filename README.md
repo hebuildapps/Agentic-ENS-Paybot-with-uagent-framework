@@ -1,4 +1,5 @@
 ![Static Badge](https://img.shields.io/badge/GitHub-black?style=plastic&logo=github&link=https%3A%2F%2Fgithub.com%2Fhebuildapps%2FAgentic-ENS-Paybot-with-uagent-framework)
+![Static Badge](https://img.shields.io/badge/Agentverse-white?logo=opentofu&logoColor=black&link=https%3A%2F%2Fagentverse.ai%2Fagents%2Fdetails%2Fagent1qwsflftwpzjx9x0vtf9nj39qpsdrxutn093vrjh0aqyh4xpukap9k0at8m5%2Fprofile)
 
 
 # MeTTaPay - ENS Pay Agent
