@@ -24,6 +24,7 @@ agent = Agent(
     name="ens-pay-agent",
     port=8000,
     seed="adult absorb acid always among actor about agree aerobic alcohol air ahead",
+    endpoint=["https://agentic-ens-paybot-with-uagent-framework.onrender.com/submit"],
 )
 
 fund_agent_if_low(agent.wallet.address())
