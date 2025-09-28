@@ -23,7 +23,7 @@ load_dotenv()
 agent = Agent(
     name="ens-pay-agent",
     port=8000,
-    seed="ens-payment-agent-secret-seed-phrase",
+    seed="adult absorb acid always among actor about agree aerobic alcohol air ahead",
 )
 
 fund_agent_if_low(agent.wallet.address())
