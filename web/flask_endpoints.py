@@ -15,6 +15,7 @@ def create_app(payment_core=None, metta_kg=None):
             'version': '1.0.0',
             'status': 'running',
             'endpoints': {
+                'POST /': 'Agentverse integration endpoint',
                 'POST /endpoint': 'Main payment processing endpoint',
                 'GET /health': 'Health check',
                 'GET /knowledge-graph': 'View MeTTa knowledge graph',
@@ -29,6 +30,61 @@ def create_app(payment_core=None, metta_kg=None):
                 'ens_cached': len(metta_kg.ens_cache) if metta_kg else 0
             }
         })
+
+    @app.route('/', methods=['POST'])
+    def handle_agentverse_message():
+        """Handle incoming messages from Agentverse (same as /endpoint but for root path)"""
+        try:
+            data = request.json
+
+            if not data:
+                return jsonify({
+                    'success': False,
+                    'error': 'No JSON data provided'
+                }), 400
+
+            # Handle payment prompts or general messages
+            if 'prompt' in data:
+                # Payment request format
+                result = asyncio.run(payment_core.handle_payment_request(
+                    data['prompt'],
+                    data.get('user_address', 'agentverse_user'),
+                    data.get('chain_id', 11155111)
+                ))
+            elif 'message' in data:
+                # Chat message format (common from Agentverse)
+                message = data['message']
+                user_id = data.get('user_id', 'unknown')
+
+                # Try to process as payment if it looks like one
+                if any(keyword in message.lower() for keyword in ['pay', 'send', 'transfer', 'usdc', 'eth', '.eth']):
+                    result = asyncio.run(payment_core.handle_payment_request(
+                        message,
+                        f"agentverse_{user_id}",
+                        11155111  # Sepolia testnet
+                    ))
+                else:
+                    # Simple chat response
+                    result = {
+                        'success': True,
+                        'message': f"Hello! I'm the ENS Pay Agent. I can help you send payments using ENS names. Try: 'Pay 5 USDC to vitalik.eth'",
+                        'received_message': message,
+                        'user_id': user_id,
+                        'metta_knowledge_size': len(metta_kg.facts) if metta_kg else 0
+                    }
+            else:
+                result = {
+                    'success': False,
+                    'error': 'Send message with "prompt" or "message" field'
+                }
+
+            return jsonify(result)
+
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
 
     @app.route('/endpoint', methods=['POST'])
     def handle_http_request():

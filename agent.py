@@ -1,10 +1,9 @@
 import os
 import asyncio
-import threading
 import logging
 from dotenv import load_dotenv
 
-from uagents import Agent, Context
+from uagents import Agent, Context, Protocol
 from uagents.setup import fund_agent_if_low
 
 from src.metta import MeTTaKnowledgeGraph
@@ -17,7 +16,7 @@ from src.protocols import (
     AgentInfoQuery, AgentInfoResponse
 )
 from src.protocols.chat_protocol_simple import SimpleChatProtocol
-from web import create_app, run_flask_server
+# Flask server removed for proper Chat Protocol v0.3.0 integration
 
 load_dotenv()
 
@@ -25,7 +24,6 @@ agent = Agent(
     name="ens-pay-agent",
     port=8000,
     seed="ens-payment-agent-secret-seed-phrase",
-    endpoint=["http://127.0.0.1:8000/submit"],
 )
 
 fund_agent_if_low(agent.wallet.address())
@@ -35,7 +33,37 @@ ens_resolver = ENSResolver(metta_kg=metta_kg)
 asi1_client = ASI1Client(metta_kg=metta_kg)
 singularity_client = SingularityClient(metta_kg=metta_kg) 
 payment_core = PaymentCore(ens_resolver=ens_resolver, metta_kg=metta_kg, asi1_client=asi1_client, singularity_client=singularity_client)
+# Initialize chat protocol and create Protocol v0.3.0
 chat_protocol = SimpleChatProtocol(asi1_client=asi1_client, payment_core=payment_core, metta_kg=metta_kg, singularity_client=singularity_client)
+
+# Create Chat Protocol v0.3.0 for Agentverse
+agentverse_chat_protocol = Protocol("Chat Protocol v0.3.0")
+
+@agentverse_chat_protocol.on_message(model=ChatMessage)
+async def handle_agentverse_chat(ctx: Context, sender: str, msg: ChatMessage):
+    """Handle chat messages from Agentverse using Chat Protocol v0.3.0"""
+    ctx.logger.info(f"Chat message from {sender}: {msg.message}")
+
+    try:
+        result = await chat_protocol.handle_message(ctx, sender, msg.message, msg.user_id)
+
+        response = ChatResponse(
+            message=result["message"],
+            requires_wallet=result.get("requires_wallet", False),
+            transaction_data=result.get("transaction_data")
+        )
+
+        await ctx.send(sender, response)
+
+    except Exception as e:
+        ctx.logger.error(f"Chat protocol error: {e}")
+        response = ChatResponse(
+            message="⚠️ I encountered an error processing your message. Please try again."
+        )
+        await ctx.send(sender, response)
+
+# Include the protocol with the agent
+agent.include(agentverse_chat_protocol)
 
 @agent.on_message(model=PaymentRequest)
 async def handle_payment_message(ctx: Context, sender: str, msg: PaymentRequest):
@@ -87,29 +115,7 @@ async def handle_payment_message(ctx: Context, sender: str, msg: PaymentRequest)
 
     await ctx.send(sender, response)
 
-@agent.on_message(model=ChatMessage)
-async def handle_chat(ctx: Context, sender: str, msg: ChatMessage):
-    """Handle natural language chat messages using simplified protocol"""
-
-    ctx.logger.info(f"Chat message from {sender}: {msg.message}")
-    print(f"CHAT: {msg.message} from {sender}")
-
-    try:
-        result = await chat_protocol.handle_message(ctx, sender, msg.message, msg.user_id)
-
-        response = ChatResponse(
-            message=result["message"],
-            requires_wallet=result.get("requires_wallet", False),
-            transaction_data=result.get("transaction_data")
-        )
-
-    except Exception as e:
-        ctx.logger.error(f"Chat protocol error: {e}")
-        response = ChatResponse(
-            message="⚠️ I encountered an error processing your message. Please try again."
-        )
-
-    await ctx.send(sender, response)
+# Chat handling is now done through the Chat Protocol v0.3.0 above
 
 @agent.on_event("startup")
 async def startup_event(ctx: Context):
@@ -134,19 +140,9 @@ if __name__ == "__main__":
     print(f"  - MeTTa Knowledge Graph: {len(metta_kg.rules)} rules initialized")
     print(f"  - ASI1 LLM: Enhanced with MeTTa context")
     print(f"  - SingularityNET: {len(singularity_client.ai_services)} AI services available")
-    print("Send PaymentRequest messages to interact")
-    print("HTTP endpoints available for Agentverse integration")
+    print("Send ChatMessage to interact via Chat Protocol v0.3.0")
+    print("Agent ready for Agentverse integration")
 
-    # Start Flask server
-    flask_app = create_app(payment_core=payment_core, metta_kg=metta_kg)
-    flask_thread = threading.Thread(
-        target=run_flask_server,
-        args=(flask_app,),
-        daemon=True
-    )
-    flask_thread.start()
-    print(f"HTTP server started on port {os.environ.get('PORT', 8080)}")
-
-    # Start uAgent
+    # Start uAgent with Chat Protocol v0.3.0
     agent.run()
     
