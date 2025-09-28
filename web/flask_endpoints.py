@@ -6,6 +6,30 @@ def create_app(payment_core=None, metta_kg=None):
     """Create Flask app with endpoints"""
     app = Flask(__name__)
 
+    @app.route('/', methods=['GET'])
+    def root():
+        """Root endpoint - landing page"""
+        return jsonify({
+            'agent': 'ENS Pay Agent with MeTTa Knowledge Graph',
+            'description': 'AI agent for blockchain payments using ENS names and MeTTa reasoning',
+            'version': '1.0.0',
+            'status': 'running',
+            'endpoints': {
+                'POST /endpoint': 'Main payment processing endpoint',
+                'GET /health': 'Health check',
+                'GET /knowledge-graph': 'View MeTTa knowledge graph',
+                'POST /metta-query': 'Query MeTTa knowledge',
+                'POST /add-fact': 'Add facts to knowledge graph',
+                'GET /recent-reasoning': 'View recent reasoning examples'
+            },
+            'usage': 'Send POST to /endpoint with {"prompt": "Pay 5 USDC to vitalik.eth", "user_address": "0x...", "chain_id": 11155111}',
+            'metta_status': {
+                'facts': len(metta_kg.facts) if metta_kg else 0,
+                'rules': len(metta_kg.rules) if metta_kg else 0,
+                'ens_cached': len(metta_kg.ens_cache) if metta_kg else 0
+            }
+        })
+
     @app.route('/endpoint', methods=['POST'])
     def handle_http_request():
         """HTTP endpoint for Agentverse integration"""
